@@ -1,10 +1,10 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-const Home = () => {
+const Login: React.FC = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Login Screen</Text>
     </View>
   );
 };
@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f5f5",
   },
   title: {
     fontSize: 24,
@@ -22,4 +22,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Home;
+export default Login;
