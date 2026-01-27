@@ -1,25 +1,130 @@
+import { Button, ButtonText } from "@/components/ui/button";
+import {
+  FormControl,
+  FormControlError,
+  FormControlErrorText,
+} from "@/components/ui/form-control";
+import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
+import { Input, InputField } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const Login: React.FC = () => {
+export default function LoginScreen() {
+  const router = useRouter();
+  const [isInvalid, setIsInvalid] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState("");
+
+  const validatePhoneNumber = (number: string) => {
+    const cleaned = number.replace(/\D/g, "");
+    const regex = /^[6-9]\d{9}$/;
+    return regex.test(cleaned);
+  };
+
+  const handleChange = (text: string) => {
+    const cleaned = text.replace(/\D/g, "").slice(0, 10);
+    setInputValue(cleaned);
+
+    if (isInvalid) setIsInvalid(false);
+  };
+
+  const handleNext = () => {
+    if (!validatePhoneNumber(inputValue)) {
+      setIsInvalid(true);
+      return;
+    }
+    //todo:singin with otp logic
+    router.push("/(auth)/verify");
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login Screen</Text>
-    </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <VStack className="flex-1 px-6 pt-4">
+          <HStack className="justify-between items-center mb-8">
+            <Heading size="3xl" className="font-bold text-primary-500">
+              Hungi
+            </Heading>
+            <Pressable className="flex-row items-center gap-1">
+              <Ionicons name="help-circle-outline" size={22} color="#000" />
+              <Text size="lg" className="font-semibold">
+                Help
+              </Text>
+            </Pressable>
+          </HStack>
+
+          <VStack className="flex-1">
+            <VStack className="mb-6">
+              <Heading size="2xl" className="font-bold mb-2">
+                What&apos;s your number?
+              </Heading>
+              <Text size="md" className="text-gray-600">
+                Enter your phone number to proceed
+              </Text>
+            </VStack>
+
+            <FormControl
+              isInvalid={isInvalid}
+              size="lg"
+              isDisabled={false}
+              isReadOnly={false}
+              isRequired={false}
+            >
+              <Input variant="outline" size="xl" className="rounded-lg">
+                <HStack className="items-center pl-3 gap-2">
+                  <Text size="2xl">🇮🇳</Text>
+                  <Text size="xl" bold>
+                    +91
+                  </Text>
+                </HStack>
+                <InputField
+                  type="text"
+                  placeholder="Enter Mobile Number"
+                  value={inputValue}
+                  onChangeText={handleChange}
+                  keyboardType="phone-pad"
+                  className="text-xl"
+                />
+              </Input>
+              <FormControlError>
+                <FormControlErrorText className="text-red-500">
+                  Please enter a valid phone number.
+                </FormControlErrorText>
+              </FormControlError>
+            </FormControl>
+          </VStack>
+
+          <VStack className="pb-6 gap-3">
+            <Text size="sm" className="text-gray-600 text-center">
+              By continuing, you agree to the{" "}
+              <Text size="sm" className="text-blue-600">
+                terms
+              </Text>{" "}
+              and{" "}
+              <Text size="sm" className="text-blue-600">
+                privacy policy
+              </Text>{" "}
+              of Hungi.
+            </Text>
+            <Button
+              size="xl"
+              isDisabled={inputValue.length < 10}
+              onPress={handleNext}
+            >
+              <ButtonText className="font-semibold">Next</ButtonText>
+            </Button>
+          </VStack>
+        </VStack>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-});
-
-export default Login;
+}
