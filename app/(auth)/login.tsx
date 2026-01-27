@@ -10,6 +10,7 @@ import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { useAuthStore } from "@/stores/authStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -18,7 +19,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [isInvalid, setIsInvalid] = React.useState(false);
+  const sendOtp = useAuthStore((s) => s.sendOtp);
+  const loading = useAuthStore((s) => s.loading);
+  const [error, setError] = React.useState("");
   const [inputValue, setInputValue] = React.useState("");
 
   const validatePhoneNumber = (number: string) => {
@@ -31,16 +34,31 @@ export default function LoginScreen() {
     const cleaned = text.replace(/\D/g, "").slice(0, 10);
     setInputValue(cleaned);
 
-    if (isInvalid) setIsInvalid(false);
+    if (error) setError("");
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validatePhoneNumber(inputValue)) {
-      setIsInvalid(true);
+      setError("Please enter a valid phone number.");
       return;
     }
-    //todo:singin with otp logic
-    router.push("/(auth)/verify");
+    const padPhoneNo = `91${inputValue}`;
+
+    try {
+      const { error } = await sendOtp(padPhoneNo);
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      router.replace({
+        pathname: "/(auth)/verify",
+        params: { phone: padPhoneNo },
+      });
+    } catch (e) {
+      setError("Something went wrong. Please try again.");
+    }
   };
 
   return (
@@ -61,7 +79,6 @@ export default function LoginScreen() {
               </Text>
             </Pressable>
           </HStack>
-
           <VStack className="flex-1">
             <VStack className="mb-6">
               <Heading size="2xl" className="font-bold mb-2">
@@ -73,7 +90,7 @@ export default function LoginScreen() {
             </VStack>
 
             <FormControl
-              isInvalid={isInvalid}
+              isInvalid={!!error}
               size="lg"
               isDisabled={false}
               isReadOnly={false}
@@ -93,11 +110,13 @@ export default function LoginScreen() {
                   onChangeText={handleChange}
                   keyboardType="phone-pad"
                   className="text-xl"
+                  autoFocus
+                  maxLength={10}
                 />
               </Input>
               <FormControlError>
                 <FormControlErrorText className="text-red-500">
-                  Please enter a valid phone number.
+                  {error}
                 </FormControlErrorText>
               </FormControlError>
             </FormControl>
@@ -117,7 +136,7 @@ export default function LoginScreen() {
             </Text>
             <Button
               size="xl"
-              isDisabled={inputValue.length < 10}
+              isDisabled={inputValue.length < 10 || !loading}
               onPress={handleNext}
             >
               <ButtonText className="font-semibold">Next</ButtonText>

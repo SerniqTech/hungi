@@ -4,8 +4,10 @@ import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/authStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import {
   KeyboardAvoidingView,
@@ -17,9 +19,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Verify() {
   const router = useRouter();
+  const { phone } = useLocalSearchParams<{ phone: string }>();
+  const verifyOtp = useAuthStore((s) => s.verifyOtp);
+  const user = useAuthStore((s) => s.user);
+  const session = useAuthStore((s) => s.session);
   const [otp, setOtp] = React.useState(["", "", "", "", "", ""]);
   const inputRefs = React.useRef<(TextInput | null)[]>([]);
   const [timer, setTimer] = React.useState(8);
+  const [error, setError] = React.useState();
 
   React.useEffect(() => {
     if (timer > 0) {
@@ -30,13 +37,27 @@ export default function Verify() {
     }
   }, [timer]);
 
-  const handleOtpChange = (value: string, index: number) => {
+  const handleOtpChange = async (value: string, index: number) => {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
+    }
+
+    if (index === 5 && value) {
+      const token = newOtp.join("");
+
+      const { error: verifyOtpError } = await verifyOtp(phone, token);
+
+      const { data } = await supabase.auth.getSession();
+      console.log(data.session?.user?.phone);
+
+      if (verifyOtpError) {
+        console.log(verifyOtpError);
+        setError(verifyOtpError?.message);
+      }
     }
   };
 
@@ -99,6 +120,7 @@ export default function Verify() {
                 </Box>
               ))}
             </HStack>
+            <Text className="text-error-500">{error}</Text>
 
             {/* Resend Button */}
             <Pressable

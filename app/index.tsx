@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import "react-native-url-polyfill/auto";
 
 const Index = () => {
   const handlePress = () => {
