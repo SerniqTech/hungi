@@ -45,10 +45,10 @@ export default function LoginScreen() {
     const padPhoneNo = `91${inputValue}`;
 
     try {
-      const { error } = await sendOtp(padPhoneNo);
+      const { error: sendOptError } = await sendOtp(padPhoneNo);
 
-      if (error) {
-        setError(error.message);
+      if (sendOptError) {
+        setError(sendOptError);
         return;
       }
 
@@ -136,10 +136,12 @@ export default function LoginScreen() {
             </Text>
             <Button
               size="xl"
-              isDisabled={inputValue.length < 10 || !loading}
+              isDisabled={inputValue.length < 10 || loading}
               onPress={handleNext}
             >
-              <ButtonText className="font-semibold">Next</ButtonText>
+              <ButtonText className="font-semibold">
+                {loading ? "Sending..." : "Next"}
+              </ButtonText>
             </Button>
           </VStack>
         </VStack>

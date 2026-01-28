@@ -4,38 +4,46 @@ import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { supabase } from "@/lib/supabase";
+import { formatIndianPhone } from "@/lib/phone-utils";
 import { useAuthStore } from "@/stores/authStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Verify() {
+  const initialOtp = ["", "", "", "", "", ""];
   const router = useRouter();
   const { phone } = useLocalSearchParams<{ phone: string }>();
   const verifyOtp = useAuthStore((s) => s.verifyOtp);
-  const user = useAuthStore((s) => s.user);
-  const session = useAuthStore((s) => s.session);
-  const [otp, setOtp] = React.useState(["", "", "", "", "", ""]);
-  const inputRefs = React.useRef<(TextInput | null)[]>([]);
-  const [timer, setTimer] = React.useState(8);
-  const [error, setError] = React.useState();
+  const sendOtp = useAuthStore((s) => s.sendOtp);
+  const loading = useAuthStore((s) => s.loading);
+  const [otp, setOtp] = useState(initialOtp);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const [timer, setTimer] = useState(30);
+  const [error, setError] = useState("");
 
-  React.useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [timer]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleOtpChange = async (value: string, index: number) => {
     const newOtp = [...otp];
@@ -46,17 +54,13 @@ export default function Verify() {
       inputRefs.current[index + 1]?.focus();
     }
 
-    if (index === 5 && value) {
+    if (newOtp.every((digit) => digit !== "") && !loading) {
       const token = newOtp.join("");
 
       const { error: verifyOtpError } = await verifyOtp(phone, token);
 
-      const { data } = await supabase.auth.getSession();
-      console.log(data.session?.user?.phone);
-
       if (verifyOtpError) {
-        console.log(verifyOtpError);
-        setError(verifyOtpError?.message);
+        setError(verifyOtpError);
       }
     }
   };
@@ -66,6 +70,25 @@ export default function Verify() {
       inputRefs.current[index - 1]?.focus();
     }
   };
+
+  const handleResendOtp = async () => {
+    setOtp(initialOtp);
+    setError("");
+    inputRefs.current[0]?.focus();
+    try {
+      const { error: sendOtpError } = await sendOtp(phone);
+
+      if (sendOtpError) {
+        setError(sendOtpError);
+        return;
+      }
+      setTimer(30);
+    } catch (e) {
+      setError("Something went wrong. Please try again.");
+    }
+  };
+
+  const isResendEnabled = timer === 0 && !loading;
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -96,12 +119,12 @@ export default function Verify() {
                 Enter verification code
               </Heading>
               <Text size="md" className="text-gray-500">
-                Send to 6300129384
+                Send to {formatIndianPhone(phone)}
               </Text>
             </VStack>
 
             {/* OTP Input Boxes */}
-            <HStack className="justify-between mb-8 px-2">
+            <HStack className="justify-between mb-6 px-2">
               {[0, 1, 2, 3, 4, 5].map((index) => (
                 <Box key={index}>
                   <TextInput
@@ -116,39 +139,39 @@ export default function Verify() {
                     onKeyPress={(e) => handleKeyPress(e, index)}
                     textAlign="center"
                     autoFocus={index === 0}
+                    editable={!loading}
                   />
                 </Box>
               ))}
             </HStack>
-            <Text className="text-error-500">{error}</Text>
+            {error && <Text className="text-error-500">{error}</Text>}
 
             {/* Resend Button */}
             <Pressable
-              className="flex-row items-center gap-2 py-2 px-6 bg-gray-100 rounded-full self-start mb-3"
-              disabled={timer > 0}
+              className={`flex-row items-center gap-2 py-2 px-4 rounded-full self-start mb-3 ${
+                isResendEnabled ? "bg-blue-100" : "bg-gray-100"
+              }`}
+              disabled={!isResendEnabled}
+              onPress={handleResendOtp}
             >
-              <Ionicons name="chatbox-outline" size={20} color="#666" />
-              <Text size="md" className="text-gray-600">
-                Resend in {timer}s
+              <Ionicons
+                name="chatbox-outline"
+                size={20}
+                color={isResendEnabled ? "#2563EB" : "#666"}
+              />
+              <Text
+                size="md"
+                className={isResendEnabled ? "text-blue-600" : "text-gray-600"}
+              >
+                {isResendEnabled ? "Resend OTP" : `Resend in ${timer}s`}
               </Text>
             </Pressable>
 
-            {/* WhatsApp Button */}
-            <Pressable className="flex-row items-center gap-2 py-2 px-6 bg-green-50 rounded-full self-start">
-              <Ionicons name="logo-whatsapp" size={22} color="#25D366" />
-              <Text size="md" className="text-green-600 font-medium">
-                Send via WhatsApp
-              </Text>
-            </Pressable>
-
-            {/* Footer Text */}
-            <Box className="absolute bottom-6 left-6 right-6">
-              <Text size="xs" className="text-gray-500 leading-5">
-                By tapping on &quot;Send via Whatsapp&quot;, you agree to
-                receive important communications such as OTP and payment
-                details, over Whatsapp
-              </Text>
-            </Box>
+            {loading && (
+              <View style={styles.overlay}>
+                <ActivityIndicator size="large" />
+              </View>
+            )}
           </VStack>
         </VStack>
       </KeyboardAvoidingView>
@@ -165,5 +188,11 @@ const styles = StyleSheet.create({
     color: "#000",
     borderBottomWidth: 2,
     borderBottomColor: "#E5E7EB",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
   },
 });
