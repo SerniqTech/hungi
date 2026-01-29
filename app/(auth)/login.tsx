@@ -10,6 +10,7 @@ import { Input, InputField } from "@/components/ui/input";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
+import { validatePhoneNumber } from "@/lib/phone-utils";
 import { useAuthStore } from "@/stores/authStore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
@@ -23,12 +24,6 @@ export default function LoginScreen() {
   const loading = useAuthStore((s) => s.loading);
   const [error, setError] = React.useState("");
   const [inputValue, setInputValue] = React.useState("");
-
-  const validatePhoneNumber = (number: string) => {
-    const cleaned = number.replace(/\D/g, "");
-    const regex = /^[6-9]\d{9}$/;
-    return regex.test(cleaned);
-  };
 
   const handleChange = (text: string) => {
     const cleaned = text.replace(/\D/g, "").slice(0, 10);

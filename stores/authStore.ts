@@ -7,6 +7,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   initialized: boolean;
+  isOnboardingCompleted: boolean;
   sendOtp: (phone: string) => Promise<{ error: any }>;
   verifyOtp: (phone: string, token: string) => Promise<{ error: any }>;
   initialize: () => Promise<void>;
@@ -17,6 +18,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   loading: false,
   initialized: false,
+  isOnboardingCompleted: false,
 
   sendOtp: async (phone) => {
     set({ loading: true });

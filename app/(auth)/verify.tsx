@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function Verify() {
+export default function VerifyScreen() {
   const initialOtp = ["", "", "", "", "", ""];
   const router = useRouter();
   const { phone } = useLocalSearchParams<{ phone: string }>();

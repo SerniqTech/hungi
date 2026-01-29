@@ -11,3 +11,9 @@ export function formatIndianPhone(phone: string) {
 
   return phone; // fallback
 }
+
+export const validatePhoneNumber = (number: string) => {
+  const cleaned = number.replace(/\D/g, "");
+  const regex = /^[6-9]\d{9}$/;
+  return regex.test(cleaned);
+};

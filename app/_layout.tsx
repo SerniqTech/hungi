@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/authStore";
 export default function RootLayout() {
   const user = useAuthStore((s) => s.user);
   const initialize = useAuthStore((S) => S.initialize);
+  const isOnboardingCompleted = useAuthStore((s) => s.isOnboardingCompleted);
 
   useEffect(() => {
     initialize();
@@ -16,8 +17,11 @@ export default function RootLayout() {
   return (
     <GluestackUIProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!!user}>
+        <Stack.Protected guard={!!user && isOnboardingCompleted}>
           <Stack.Screen name="(tabs)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!!user && !isOnboardingCompleted}>
+          <Stack.Screen name="(auth)/onboarding.tsx" />
         </Stack.Protected>
         <Stack.Protected guard={!user}>
           <Stack.Screen name="(auth)/login" />
