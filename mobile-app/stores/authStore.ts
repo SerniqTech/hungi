@@ -48,6 +48,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       type: "sms",
     });
 
+    if (data.user) {
+      await supabase.from("users");
+    }
+
     if (error) {
       set({ loading: false });
       return { error: normalizeAuthError(error) };
@@ -67,11 +71,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     set({ loading: true });
 
-    const { error } = await supabase.from("profiles").upsert({
+    const { error, data } = await supabase.from("users").upsert({
       id: user.id,
       name,
       onboarding_completed: true,
     });
+
+    console.log(data);
 
     if (error) {
       set({ loading: false });
