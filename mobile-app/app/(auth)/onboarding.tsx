@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const OnboardingScreen = () => {
   const router = useRouter();
-  const completeOnboarding = useAuthStore((s) => s.completeOnboarding);
+  const saveUserName = useAuthStore((s) => s.saveUserName);
   const loading = useAuthStore((s) => s.loading);
   const [error, setError] = React.useState("");
   const [inputValue, setInputValue] = React.useState("");
@@ -34,7 +34,7 @@ const OnboardingScreen = () => {
     }
 
     try {
-      const { error: onboardError } = await completeOnboarding(inputValue);
+      const { error: onboardError } = await saveUserName(inputValue);
 
       if (onboardError) {
         setError(onboardError);

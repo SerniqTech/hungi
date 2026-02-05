@@ -1,87 +1,73 @@
 import { normalizeAuthError } from "@/lib/auth-utils";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
+import { Database } from "@/types/supabase";
+import { User as AuthUser } from "@supabase/supabase-js";
 import { create } from "zustand";
 
+type AppUser = Database["public"]["Tables"]["users"]["Row"];
 interface AuthState {
-  user: User | null;
+  authUser: AuthUser | null;
+  profile: AppUser | null;
   loading: boolean;
   initialized: boolean;
   isOnboardingCompleted: boolean;
   sendOtp: (phone: string) => Promise<{ error: any }>;
   verifyOtp: (phone: string, token: string) => Promise<{ error: any }>;
-  completeOnboarding: (name: string) => Promise<{ error: any }>;
+  saveUserName: (name: string) => Promise<{ error: any }>;
   initialize: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
+  authUser: null,
+  profile: null,
   loading: false,
   initialized: false,
   isOnboardingCompleted: false,
 
   sendOtp: async (phone) => {
     set({ loading: true });
-    const { data, error } = await supabase.auth.signInWithOtp({
-      phone,
-    });
+    const { error } = await supabase.auth.signInWithOtp({ phone });
 
-    if (error) {
-      set({ loading: false });
-      return { error: normalizeAuthError(error) };
-    }
+    set({ loading: false });
 
-    set({
-      user: data.user,
-      loading: false,
-    });
-
-    return { error: null };
+    return { error: error ? normalizeAuthError(error) : null };
   },
 
   verifyOtp: async (phone, token) => {
     set({ loading: true });
-    const { data, error } = await supabase.auth.verifyOtp({
+    const { error } = await supabase.auth.verifyOtp({
       phone,
       token,
       type: "sms",
     });
 
-    if (error) {
-      set({ loading: false });
-      return { error: normalizeAuthError(error) };
-    }
+    set({ loading: false });
 
-    set({
-      user: data.user,
-      loading: false,
-    });
-
-    return { error: null };
+    return { error: error ? normalizeAuthError(error) : null };
   },
 
-  completeOnboarding: async (name: string) => {
-    const user = get().user;
-    if (!user) return { error: "User not found" };
+  saveUserName: async (name: string) => {
+    const profile = get().profile;
+    if (!profile) return { error: "User not found" };
 
     set({ loading: true });
 
-    const { error } = await supabase.from("users").upsert({
-      id: user.id,
-      full_name: name,
-      onboarding_completed: true,
-    });
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        full_name: name?.trim() || null,
+      })
+      .eq("id", profile.id)
+      .select()
+      .single();
 
     if (error) {
       set({ loading: false });
-      return { error: "Failed to save profile" };
+      return { error: "Failed to save name" };
     }
 
-    set({
-      isOnboardingCompleted: true,
-      loading: false,
-    });
+    set({ profile: data, loading: false });
 
     return { error: null };
   },
@@ -89,31 +75,46 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialize: async () => {
     if (get().initialized) return;
 
+    set({ loading: true });
+
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
-    let onboardingCompleted = false;
+    const authUser = session?.user ?? null;
+    let profile: AppUser | null = null;
 
-    if (session?.user) {
+    if (authUser) {
       const { data } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", session.user.id)
+        .from("users")
+        .select("*")
+        .eq("id", authUser.id)
         .single();
 
-      onboardingCompleted = !!data?.onboarding_completed;
+      profile = data ?? null;
     }
 
     set({
-      user: session?.user ?? null,
+      authUser,
+      profile,
       loading: false,
       initialized: true,
-      isOnboardingCompleted: onboardingCompleted,
     });
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ user: session?.user ?? null });
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      const authUser = session?.user ?? null;
+      let profile: AppUser | null = null;
+
+      if (authUser) {
+        const { data } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", authUser.id)
+          .single();
+
+        profile = data ?? null;
+      }
+      set({ authUser, profile });
     });
   },
 
@@ -121,7 +122,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true });
     await supabase.auth.signOut();
     set({
-      user: null,
+      authUser: null,
+      profile: null,
       loading: false,
     });
   },
