@@ -44,6 +44,5 @@ create table
       or char_length(trim(full_name)) >= 3
     ),
     phone text,
-    onboarding_completed boolean default false,
     created_at timestamptz default now ()
   );
