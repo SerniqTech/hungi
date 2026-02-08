@@ -14,7 +14,7 @@ import React from "react";
 import { KeyboardAvoidingView, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const OnboardingScreen = () => {
+const SetNewUserNameScreen = () => {
   const router = useRouter();
   const saveUserName = useAuthStore((s) => s.saveUserName);
   const loading = useAuthStore((s) => s.loading);
@@ -41,7 +41,7 @@ const OnboardingScreen = () => {
         return;
       }
 
-      router.replace("/(tabs)");
+      router.replace("/(auth)/onboarding/set-new-user-building");
     } catch (e) {
       console.log(e);
       setError("Something went wrong. Please try again.");
@@ -103,4 +103,4 @@ const OnboardingScreen = () => {
   );
 };
 
-export default OnboardingScreen;
+export default SetNewUserNameScreen;

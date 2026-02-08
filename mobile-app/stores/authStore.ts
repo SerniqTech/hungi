@@ -14,6 +14,7 @@ interface AuthState {
   sendOtp: (phone: string) => Promise<{ error: any }>;
   verifyOtp: (phone: string, token: string) => Promise<{ error: any }>;
   saveUserName: (name: string) => Promise<{ error: any }>;
+  saveBuilding: (name: string | null) => Promise<{ error: any }>;
   initialize: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -65,6 +66,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (error) {
       set({ loading: false });
       return { error: "Failed to save name" };
+    }
+
+    set({ profile: data, loading: false });
+
+    return { error: null };
+  },
+
+  saveBuilding: async (buildingId) => {
+    const profile = get().profile;
+    if (!profile) return { error: "User not found" };
+
+    set({ loading: true });
+
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        building_id: buildingId,
+      })
+      .eq("id", profile.id)
+      .select()
+      .single();
+
+    if (error) {
+      set({ loading: false });
+      return { error: "Failed to save building" };
     }
 
     set({ profile: data, loading: false });
